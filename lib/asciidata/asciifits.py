@@ -15,7 +15,7 @@ __version__ = "Version 1.0 $LastChangedRevision: 329 $"
 
 import string
 import os
-import pyfits
+from astropy.io import fits as pyfits
 
 class AsciiFits(object):
     """
@@ -62,7 +62,8 @@ class AsciiFits(object):
             use_numpy = 0
 
             # get the pyfits version
-            pyfits_version = pyfits.__version__.split('.')
+            #force it as i use astropy now
+            pyfits_version = '3.3'
 
             # determine the version number
             main_version = int(pyfits_version[0])
@@ -102,7 +103,7 @@ class AsciiFits(object):
         fits_cols = self._create_fits_cols(asciiData)
 
         # create the table HDU instance
-        tabhdu = pyfits.new_table(fits_cols)
+        tabhdu = pyfits.BinTableHDU.from_columns(fits_cols)
 
         # transfer the header of the AsciiData instance
         # to the fits header
@@ -131,7 +132,7 @@ class AsciiFits(object):
         for line in asciiHeader.hdata:
 
             # check whether there is indeed some content
-            if len(string.strip(line)) > 0:
+            if len(line.strip()) > 0:
 
                 # add the header in a history line
                 theader.add_history(line)
@@ -224,8 +225,8 @@ class AsciiFits(object):
 
             # check and perhaps replace tthe
             # maximum length
-            if len(string.strip(asciiColumn[ii])) > maxlen:
-                maxlen = len(string.strip(asciiColumn[ii]))
+            if len(asciiColumn[ii].strip()) > maxlen:
+                maxlen = len(asciiColumn[ii].strip())
 
         # return the maximum lengt
         return maxlen

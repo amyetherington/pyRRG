@@ -1,3 +1,4 @@
+#!/usr/local/bin/python3                                                        
 import sys,os,string,glob,subprocess
 
 from setuptools import setup,Extension
@@ -10,15 +11,14 @@ long_description = """\
 This module uses the RRG method to measure the shapes of galaxies
 in Hubble Space Telescope data
 """
-#python setup.py register -r pypi
-#sudo python setup.py sdist upload -r pypi
+#sudo python3 setup.py sdist upload -r pypi
 
-version='0.0.27'
+version='0.1.2'
          
     
 INCDIRS=['.']
 
-packages = ['pyRRG', 'RRGtools', 'asciidata']
+packages = ['pyRRG', 'RRGtools','asciidata']
 package_dir = {'RRGtools':'./lib/RRGtools',
                    'pyRRG':'./src',
                'asciidata':'./lib/asciidata'}
@@ -41,11 +41,10 @@ setup   (       name            = "pyRRG",
                 url = 'https://github.com/davidharvey1986/pyRRG', # use the URL to the github repo
                 download_url = 'https://github.com/davidharvey1986/pyRRG/archive/'+version+'.tar.gz',
                 install_requires=['scikit-learn',\
-                                      'idlsave', \
                                    'pyfits', \
                                    'numpy', \
                                    'ipdb', 'pyraf',\
-                                    'PyObjC','scipy'],                          
+                                    'scipy'],                          
         )
 
 

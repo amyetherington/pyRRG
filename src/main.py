@@ -3,21 +3,21 @@ import numpy as np
 import glob as glob
 import RRGtools as at
 import pickle as pkl
-import measure_moms as measure_moms
-import star_galaxy_separation as sgs
-import pyfits as py
-import calc_shear as cs
-import psf_cor as psf
-import plot_shears as plot
-import ellipse_to_reg as etr
-import directories as directories
-import rrg_to_lenstool as rtl
+from . import measure_moms as measure_moms
+from . import star_galaxy_separation as sgs
+from astropy.io import fits
+from . import calc_shear as cs
+from . import psf_cor as psf
+from . import plot_shears as plot
+from . import ellipse_to_reg as etr
+from . import directories as directories
+from . import rrg_to_lenstool as rtl
 import subprocess
-import check_external_packages as cep
-import masking_star as mask
-import double_detection_removal as remove_doubles
+from . import check_external_packages as cep
+from . import masking_star as mask
+from . import double_detection_removal as remove_doubles
 import sys
-from getHSTfilter import getHSTfilter 
+from .getHSTfilter import getHSTfilter 
 
 def main(  infile,
             data_dir=None,
@@ -77,8 +77,8 @@ def main(  infile,
     if data_dir is None:
         data_dir = os.getcwd()+'/'    
    
-    stilts_dir = '/'.join(subprocess.check_output(['which','stilts.sh']).split('/')[:-1])
-        
+    
+    stilts_dir = '/'+'/'.join(str(subprocess.check_output(['which','stilts.sh'])).split('/')[1:-1])
     dirs = directories.directories(data_dir,  sex_files,
                            psf_model_dir+'/'+str(wavelength)+'/',
                                        code_dir, stilts_dir)
@@ -112,19 +112,19 @@ def main(  infile,
                                          conf_path=dirs.sex_files,
                                          dataDir=dirs.data_dir)
     else:
-        sources = py.open( sex_catalogue )[1].data
+        sources = fits.open( sex_catalogue )[1].data
 
   
     uncorrected_moments_cat = field[:-5]+"_uncor.cat"
     
     if not os.path.isfile(uncorrected_moments_cat):
-        measure_moms.measure_moms( infile,
+        measure_moms( infile,
                                    sex_catalogue,
                                    uncorrected_moments_cat,
                                     min_rad=min_rad, mult=mult,
                                        silent=True)
 
-    uncorrected_moments = py.open( uncorrected_moments_cat )[1].data
+    uncorrected_moments = fits.open( uncorrected_moments_cat )[1].data
  
 
     
@@ -143,7 +143,7 @@ def main(  infile,
                     n_chip=2)
     
 
-    corrected_moments = py.open( corrected_moments_cat )[1].data
+    corrected_moments = fits.open( corrected_moments_cat )[1].data
 
     #Correct zerpoint for the stacked num exposures
   
@@ -161,13 +161,14 @@ def main(  infile,
 
 
     beforeDoubles_cat = field[:-5]+"_clean_withDoubles.shears"
-    mask.main( sheared_cat, corrected_moments_cat,
+    mask.main( sheared_cat, uncorrected_moments_cat,
                    outFile=beforeDoubles_cat)
 
 
     clean_cat = field[:-5]+"_clean.shears"
 
-    remove_doubles.remove_object(sheared_cat, clean_cat, FWHM_to_radius=1)
+    remove_doubles.remove_object(beforeDoubles_cat, \
+                    clean_cat, FWHM_to_radius=1)
     
     plot.plot_shears( clean_cat )
 
@@ -178,7 +179,7 @@ def main(  infile,
   
 
 if __name__ == "__main__":
-    print len(sys.argv)
+    print(len(sys.argv))
     if len(sys.argv) == 1:
         print("Please to add image name")
         print("python main.py <image_name>")

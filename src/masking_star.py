@@ -1,4 +1,4 @@
-import pyfits as fits
+from astropy.io import fits
 import numpy as np
 import matplotlib.pyplot as plt
 import os as os
@@ -6,13 +6,13 @@ import ipdb as pdb
 import RRGtools as tools
 
 def plot_region_maskstar( filename, star):
-    regionFile = open( filename, "wb")
+    regionFile = open( filename, "w")
     regionFile.write('# Region file format: DS9 version 4.1\n')
     #regionFile.write('# Filename: dummy.fits\n')
     regionFile.write("global color=green dashlist=8 3 width=1 font='helvetica 10 normal roman' select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1\n")
     regionFile.write("image\n")
     
-    for j in xrange(len(star)):
+    for j in range(len(star)):
         polygonStr = 'polygon('
         for i in star[j]:
             polygonStr += '%0.4f,'  % i
@@ -100,9 +100,9 @@ def inpoly(Px,Py,xl,yl):
     
     #test input
     if N<3:
-        print "A polygon must have at least three vertices"
+        print("A polygon must have at least three vertices")
     if len(xv)!=len(yv):
-        print 'Must have same number of X and Y coordinates'
+        print('Must have same number of X and Y coordinates')
     
     #---------------------- Change coordinate system -----------------
     #Place P at the center of the coordinate system.
@@ -150,7 +150,7 @@ def inpoly(Px,Py,xl,yl):
     return nc
 
 def main(  shear_catalog, object_catalog_fits, \
-         mask_file='mask.reg', outFile='Shear_remove.fits' ,plot_reg=False):
+         mask_file='mask.reg', outFile='Shear_remove.fits' ,plot_reg=True):
     '''
         This algoritm will do two things.
         a) Draw masks(polygon) around detected stars automatically and remove objects within the polygon.
@@ -163,8 +163,11 @@ def main(  shear_catalog, object_catalog_fits, \
     
     object_catalog = fits.open(object_catalog_fits)[1].data
     
-
-    Star_catalogue = object_catalog[ object_catalog['galStarFlag']==0]
+    
+    Star_catalogue = \
+      object_catalog[ (object_catalog['galStarFlag']==-1) &
+                      (object_catalog['MAG_AUTO'] < \
+        np.min( object_catalog['MAG_AUTO'][ object_catalog['galStarFlag']==0]))]
 
 
     data=fits.open(shear_catalog)[1].data   ##remember to change it to the name of your shear catalogue
@@ -177,8 +180,8 @@ def main(  shear_catalog, object_catalog_fits, \
     new_cols = fits.ColDefs(cols)
     hdu = fits.BinTableHDU.from_columns(orig_cols + new_cols)
     clean_catalog = shear_catalog.split('.')[0]+'_clean.'+\
-
-    hdu.writeto(clean_catalog, clobber=True,output_verify='ignore')
+        shear_catalog.split('.')[1]
+    hdu.writeto(clean_catalog, overwrite=True)
 
 
     ##########plot remove_star.reg---------------------------------------------------------
@@ -203,25 +206,28 @@ def main(  shear_catalog, object_catalog_fits, \
             star_x=Star_catalogue['X_IMAGE'][j]
             star_y=Star_catalogue['Y_IMAGE'][j]
             m=Star_catalogue["MAG_AUTO"][j]
-            inside,star_corr_one=instar(xl,yl,star_x,star_y,m)
+            inside, star_corr_one = instar(xl,yl,star_x,star_y,m)
+            
             #star_corr[j]=star_corr_one
             if inside==1:
                 Shears['clean'][i]=1
-            break
+            
 
 
     Shears_remove=Shears[Shears['clean']==0]
 
-    fits.writeto(outFile,Shears_remove, clobber=True,output_verify='ignore' )
+    fits.writeto(outFile, Shears_remove, overwrite=True, output_verify='ignore' )
 
     ##-------------------------------start masking (for mask.reg)-------------------------------
     if os.path.isfile(mask_file):
-        mask_obj = open(mask_file, 'rb')
+        mask_obj = open(mask_file, 'r')
+        
         for mask in mask_obj:
+            
             if mask[0:3] != 'box' and mask[0:7] !='polygon':
                 continue
             elif mask[0:3] == 'box':
-                print "masking a box"
+                print("masking a box")
                 mask_x = np.float(mask.split('(')[1].split(',')[0])
                 mask_y = np.float(mask.split('(')[1].split(',')[1])
                 mask_sizex = np.float(mask.split('(')[1].split(',')[2][:-1])
@@ -241,9 +247,9 @@ def main(  shear_catalog, object_catalog_fits, \
                             (shears_y_mask_rot > -mask_sizey/2.)
     
                 Shears_remove = Shears_remove[ inBox == False ]
-    
+          
             elif mask[0:7] =='polygon':
-                print "masking a ploygon"
+                print("masking a ploygon")
                 mask_x = mask.split('(')[1].split(',')[::2]
                 px1 = [float(i) for i in mask_x]
                 mask_y = mask.split('(')[1].split(',')[1::2]
@@ -257,7 +263,7 @@ def main(  shear_catalog, object_catalog_fits, \
                         Shears_remove['clean'][k]=1
                 Shears_remove=Shears_remove[Shears_remove['clean']==0]
 
-        fits.writeto(outFile,Shears_remove, clobber=True,output_verify='ignore' )
+        fits.writeto(outFile,Shears_remove, overwrite=True,output_verify='ignore' )
 
 
 

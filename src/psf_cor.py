@@ -1,15 +1,15 @@
-import pyfits as py
+from astropy.io import fits
 import numpy as np
 import os as os
-import glob as glob
-import drizzle_position as dp
-import acs_determine_focus as adf
-import acs_3dpsf as acs_3dpsf
-import idlsave as idlsave
-import rotate_moments as rm
+from . import drizzle_position as dp
+from . import acs_determine_focus as adf
+from . import acs_3dpsf as acs_3dpsf
+from scipy.io.idl import readsav 
+from . import rotate_moments as rm
 import copy as cp
-import directories
+from . import directories
 import sys
+from . import getIndividualExposures as gie
 def psf_cor(    mom_file,
                 outfile,
                 drizzle_file,
@@ -58,7 +58,7 @@ def psf_cor(    mom_file,
     '''
     dirs = directories.return_dirs( )
 
-    moms = py.open(mom_file)[1].data
+    moms = fits.open(mom_file)[1].data
 
     radius = np.sqrt( ( moms.xx + moms.yy)/2.)
     
@@ -79,11 +79,11 @@ def psf_cor(    mom_file,
     #;I will work out the focus myself! muwagahaha
     #;Before i get the psf moments i need to get the scat catalogue, which
     #;is found by running tintim_make_scat.pro (for tiny_tim models)
-    print 'Getting the psf models from tinytim, cheers Tim!'
+    print('Getting the psf models from tinytim, cheers Tim!')
     #need to think about this
     #tinytim_make_scat, data_dir=dirs.model_dir, wavelength=filter[0], scat=scat
 
-    scat = idlsave.read( dirs.psf_model_dir+'/TinyTim'+wavelength+'.scat' )['scat']
+    scat = readsav( dirs.psf_model_dir+'/TinyTim'+wavelength+'.scat' )['scat']
 
     #so this function interpolates.
  
@@ -98,7 +98,8 @@ def psf_cor(    mom_file,
     ;4. Then take the average of the moments for each 
     '''
 
-    images = glob.glob( dirs.data_dir+'/j*_drz_sci.fits')
+    images = gie.getIndividualExposures( drizzle_file )
+    
     if len(images) == 0:
         raise ValueError('Cant find single exposures of field')
 
@@ -138,7 +139,7 @@ def psf_cor(    mom_file,
     FocusArray = np.zeros(nImages)
 
     sys.stdout.write("\n")
-    for iImage in xrange(nImages):
+    for iImage in range(nImages):
         sys.stdout.write("Getting PSF for image: %i/%i\r" % \
                                  (iImage+1,nImages))
         sys.stdout.flush()
@@ -173,7 +174,7 @@ def psf_cor(    mom_file,
         
         #CHECK THAT ANGLES ARE CORRECT HERE PLEASE
         
-        mom_names = iPsfMoms.keys()
+        mom_names = list(iPsfMoms.keys())
         for iMom in mom_names:
             
             #I need to now rotate each moment according to the axis orient 
@@ -191,9 +192,9 @@ def psf_cor(    mom_file,
         #then give the position the value of the averaged psf_moms.
 
     #Save the focus array
-    focuslist = open(dirs.data_dir+'/FocusArray.txt', "wb")
+    focuslist = open(dirs.data_dir+'/FocusArray.txt', "w")
     
-    for i in xrange(nImages):
+    for i in range(nImages):
         ExpName = images[i].split('/')[-1].split('_')[0]
         focuslist.write( "%s %3.1f \n" % \
                              (ExpName, FocusArray[i]))
@@ -337,7 +338,7 @@ def psf_cor(    mom_file,
       (corrected_moments.xx+corrected_moments.yy)
   
     #Those moments that were originally zero and -99 make them again hgere
-    for i in corrected_moments.keys():
+    for i in list(corrected_moments.keys()):
         if i in moms.columns.names:
             corrected_moments[i][galaxy_moms[i] == -99] = -99
             corrected_moments[i][galaxy_moms[i] == 0] = 0
@@ -354,17 +355,17 @@ def psf_cor(    mom_file,
     galaxy_moms = writeAndRemoveUnusedColums( galaxy_moms)
     
 
-    newcol = [ py.Column(name='shear', format=shear.dtype, array=shear),
-               py.Column(name='nExposures', format=psf_moms.nExposures.dtype, \
+    newcol = [ fits.Column(name='shear', format=shear.dtype, array=shear),
+               fits.Column(name='nExposures', format=psf_moms.nExposures.dtype, \
                          array=psf_moms.nExposures),
-                py.Column('xx_uncorrected', format=galaxy_moms.xx.dtype, array=uncorrected_xx),
-                py.Column('yy_uncorrected', format=galaxy_moms.yy.dtype, array=uncorrected_yy)]
+                fits.Column('xx_uncorrected', format=galaxy_moms.xx.dtype, array=uncorrected_xx),
+                fits.Column('yy_uncorrected', format=galaxy_moms.yy.dtype, array=uncorrected_yy)]
     
     orig_cols = galaxy_moms.columns
-    new_cols = py.ColDefs(newcol)
+    new_cols = fits.ColDefs(newcol)
     
-    hdu = py.BinTableHDU.from_columns(orig_cols+new_cols)
-    hdu.writeto( outfile, clobber=True)
+    hdu = fits.BinTableHDU.from_columns(orig_cols+new_cols)
+    hdu.writeto( outfile, overwrite=True)
 
 class moments( dict ):
 
@@ -387,7 +388,7 @@ class moments( dict ):
         self.__dict__[key] = item
         
     def keys(self):
-        return self.__dict__.keys()
+        return list(self.__dict__.keys())
 
     def __getitem__(self, key): 
         return self.__dict__[key]
@@ -403,12 +404,12 @@ def   writeAndRemoveUnusedColums( moments):
             (not 'fits_Y_IMAGE' in i) & \
              (not 'ORIENTAT' in i ):
             iColumn = \
-              py.Column(i, format=moments[i].dtype, \
+              fits.Column(i, format=moments[i].dtype, \
                             array=moments[i])
             columns.append(iColumn)
                 
-    new_cols = py.ColDefs(columns)
+    new_cols = fits.ColDefs(columns)
     
-    hdu = py.BinTableHDU.from_columns(new_cols)            
-    hdu.writeto('galaxies.fits',clobber=True)
-    return py.open('galaxies.fits')[1].data
+    hdu = fits.BinTableHDU.from_columns(new_cols)            
+    hdu.writeto('galaxies.fits',overwrite=True)
+    return fits.open('galaxies.fits')[1].data
