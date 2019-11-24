@@ -1,5 +1,5 @@
 from matplotlib import pyplot as plt
-import pyfits as py
+from astropy.io import fits
 import numpy as np
 from matplotlib import gridspec as gridspec
 import ipdb as pdb
@@ -20,7 +20,7 @@ def plot_shears( moments_catalogue, nbins=None,
     ax1 = plt.subplot( gs[0,0])
 
     if catalogue is None:
-        catalogue = py.open( moments_catalogue )[1].data
+        catalogue = fits.open( moments_catalogue )[1].data
     nGalaxies = len( catalogue.x)
 
     
@@ -40,8 +40,8 @@ def plot_shears( moments_catalogue, nbins=None,
                                     ybins[:-1] - np.mean( ybins) )
 
         
-    for i in xrange( nbins ):
-        for j in xrange( nbins ):
+    for i in range( nbins ):
+        for j in range( nbins ):
             in_bin = (catalogue.x > xbins[i] ) & \
               (catalogue.x < xbins[i+1] ) &\
               (catalogue.y > ybins[j] ) & \

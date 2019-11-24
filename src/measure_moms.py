@@ -1,5 +1,5 @@
-import mmm as mmm
-import pyfits as py
+from . import mmm as mmm
+from astropy.io import fits
 import numpy as np
 import sys
 from matplotlib import pyplot as plt
@@ -65,7 +65,7 @@ def measure_moms(fits_image, sex_catalog, outfile,
     ;
     '''
                      
-    img_file = py.open( fits_image )
+    img_file = fits.open( fits_image )
     img = img_file[0].data
     imhead = img_file[0].header
     exp_time = imhead['EXPTIME']
@@ -76,10 +76,10 @@ def measure_moms(fits_image, sex_catalog, outfile,
         (skysd is None):
         skymed, skysd, skysw = mmm.mmm(img)
     if verbose:
-        print(' % f skymed and %f skysd' % (skymed,skysd))
+        print((' % f skymed and %f skysd' % (skymed,skysd)))
     
     if object_catalogue is None:
-        cat_file=py.open(sex_catalog)
+        cat_file=fits.open(sex_catalog)
         object_catalogue = cat_file[1].data
         header=cat_file[1].header
      
@@ -105,7 +105,7 @@ def measure_moms(fits_image, sex_catalog, outfile,
     if weight_image is None:
         wt_image = np.ones( img.shape)
     else:
-        wt_image = py.open( weight_image )[0].data
+        wt_image = fits.open( weight_image )[0].data
 
 
 
@@ -118,7 +118,7 @@ def measure_moms(fits_image, sex_catalog, outfile,
     
 
     if (sgm_im != 'null') & (fieldback == 1):
-        seg_file = py.open(sgm_im)
+        seg_file = fits.open(sgm_im)
         seg = seg_file[0].data
         shdr = seg_file[0].header
         '''
@@ -147,7 +147,7 @@ def measure_moms(fits_image, sex_catalog, outfile,
     galaxy_moments = moms( nGalaxies, radius=radius )
 
 
-    for i in xrange( nGalaxies ):
+    for i in range( nGalaxies ):
         if (not verbose) & (not quiet):
             sys.stdout.write("Measuring moment of object: %i/%i\r" % \
                                  (i,nGalaxies))
@@ -174,8 +174,8 @@ def measure_moms(fits_image, sex_catalog, outfile,
             (yc+cut_rad[i]+1 > ysize ):
 
             if verbose:
-                print(' %i %f %f too close to edge at iteration 1\n' % \
-                          (i,xGal[i],yGal[i]))
+                print((' %i %f %f too close to edge at iteration 1\n' % \
+                          (i,xGal[i],yGal[i])))
             offedge=offedge+1
             go_on=0
             galaxy_moments.prob[i] += 1
@@ -250,8 +250,8 @@ def measure_moms(fits_image, sex_catalog, outfile,
                     ( xc+cut_rad[i]+1 > xsize ) | \
                     ( yc+cut_rad[i]+1 > ysize) :
                     if verbose:
-                        print( ' %i %f %f too close to edge at iteration %i' % \
-                            (i,xGal[i],yGal[i],(count-1)) )
+                        print(( ' %i %f %f too close to edge at iteration %i' % \
+                            (i,xGal[i],yGal[i],(count-1)) ))
                    
                     go_on=0
                     galaxy_moments.prob[i] += 1
@@ -259,8 +259,8 @@ def measure_moms(fits_image, sex_catalog, outfile,
                 if (badpix_centroid == 'yes'):
                     go_on=0
                     if verbose:
-                        print( '%i %f %f  bad pix in centroid at iteration %f' %
-                                    (i,xGal[i],yGal[i],(count-1)) )
+                        print(( '%i %f %f  bad pix in centroid at iteration %f' %
+                                    (i,xGal[i],yGal[i],(count-1)) ))
                                 
                     galaxy_moments.prob[i] += 4
                     badpix_prob += 1
@@ -270,15 +270,15 @@ def measure_moms(fits_image, sex_catalog, outfile,
             if (count > 100):
                 centerprob=centerprob+1
                 if verbose:
-                    print( '%i %f %f Too many centering iterations %i' % \
-                            (i,xGal[i],yGal[i],count))
+                    print(( '%i %f %f Too many centering iterations %i' % \
+                            (i,xGal[i],yGal[i],count)))
                 galaxy_moments.prob[i] += 2
                 
             if np.sqrt( (xc-xGal[i])**2 + (yc-yGal[i])**2) > mult*radius[i]:
                 go_on=0
                 centerprob += 1
                 if verbose:
-                    print( '%i %f %f Centroid shift too large ' % (i,xGal[i],yGal[i]) )
+                    print(( '%i %f %f Centroid shift too large ' % (i,xGal[i],yGal[i]) ))
                 
                 galaxy_moments.prob[i] += 2
       
@@ -303,8 +303,8 @@ def measure_moms(fits_image, sex_catalog, outfile,
             if badpix_mom == 'yes':
                 badpix_prob += 1 
                 
-                print('%i %f %f Bad pixel(s) in centroiding' %\
-                        (i,xGal[i],yGal[i]))
+                print(('%i %f %f Bad pixel(s) in centroiding' %\
+                        (i,xGal[i],yGal[i])))
 
         
     #find moments and center error
@@ -394,7 +394,7 @@ def measure_moms(fits_image, sex_catalog, outfile,
         galaxy_moments.fits_to_ellipse( regfile)
     
     if return_moms:
-        return py.open(outfile)[1].data
+        return fits.open(outfile)[1].data
 
 class moms( dict ):
 
@@ -427,13 +427,13 @@ class moms( dict ):
     
     def append( self, index, imom ):
 
-        mom_names = self.keys()
+        mom_names = list(self.keys())
         for i in mom_names:
             if i == 'radius':
                 continue
             self[i][index] = imom[i]
             if i == 'error':
-                error_names = imom.error.keys()
+                error_names = list(imom.error.keys())
                 for i in error_names:
                     self.error[i][index] = imom.error[i]
 
@@ -468,18 +468,18 @@ class moms( dict ):
         Append the moments to input sex catalogue
         '''
         
-        mom_names = self.keys()
+        mom_names = list(self.keys())
         fits_columns = []
         
         for iColumn in mom_names:
             if iColumn == 'error':
-                error_names = self.error.keys()
+                error_names = list(self.error.keys())
                 for iColumn_err in error_names:
-                    fits_columns.append(py.Column( name=iColumn_err+'_err',
+                    fits_columns.append(fits.Column( name=iColumn_err+'_err',
                                                    format=self.error[iColumn_err].dtype,
                                                    array=self.error[iColumn_err] ))
             else:
-                fits_columns.append(py.Column( name=iColumn, \
+                fits_columns.append(fits.Column( name=iColumn, \
                                                format=self[iColumn].dtype, \
                                                array=self[iColumn] ))
         
@@ -487,13 +487,13 @@ class moms( dict ):
             if (iCatalog in mom_names) | ('err' in iCatalog):
                 continue
             else:
-                fits_columns.append(py.Column( name=iCatalog,
+                fits_columns.append(fits.Column( name=iCatalog,
                                                    format=sex_catalog[iCatalog].dtype,
                                                    array=sex_catalog[iCatalog] ))
 
             
-        fits_table = py.BinTableHDU.from_columns( fits_columns )
-        fits_table.writeto( filename, clobber=True,output_verify='ignore' )
+        fits_table = fits.BinTableHDU.from_columns( fits_columns )
+        fits_table.writeto( filename, overwrite=True,output_verify='ignore' )
 
 
 
@@ -505,7 +505,7 @@ class moms( dict ):
         regionFile.write("global color=green dashlist=8 3 width=1 font='helvetica 10 normal roman' select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1\n")
         regionFile.write("physical\n")
         
-        for i in xrange(len(self.ra)):
+        for i in range(len(self.ra)):
             
             regionFile.write('ellipse(%0.4f,%0.4f,%0.4f,%0.4f,%0.4f)\n' %
                              (self.x[i], self.y[i], self.a[i], self.b[i], self.pa[i]))
@@ -514,7 +514,7 @@ class moms( dict ):
         
 
     def keys(self):
-        return self.__dict__.keys()
+        return list(self.__dict__.keys())
     
     def __getitem__(self, key): 
         return self.__dict__[key]

@@ -1,9 +1,9 @@
-import pysex as sex
-import pyfits as fits
+from . import pysex as sex
+from astropy.io import fits
 
 import numpy as np
 import os as os
-import match_cat as mc
+import RRGtools as tools 
 from numpy.lib.recfunctions import append_fields as append_rec
 
 
@@ -33,7 +33,13 @@ def source_extract( image_name, weight_file, zero_point=None,
         dataDir = os.getcwd()
         
     if zero_point is None:
-        zero_point = acs_zero_point ( fits.open( image_name )[0].header )
+        header =  fits.open( image_name )[0].header
+        findPhot =  np.array(['PHOTFLAM' in i for i in header.keys()])
+        
+        if np.all(findPhot == False):
+            header = fits.open( image_name )[1].header
+            
+        zero_point = acs_zero_point(header)
         
     conf_args = {'WEIGHT_IMAGE': dataDir+'/'+weight_file,
                  'MAG_ZEROPOINT': zero_point,
@@ -82,7 +88,7 @@ def source_extract( image_name, weight_file, zero_point=None,
 
 
     
-    matched_sources= mc.run_match( 'cold_sources.fits',
+    matched_sources= tools.run_match( 'cold_sources.fits',
                                 'hot_sources.fits')
 
     for iField in hot_sources.columns.names:

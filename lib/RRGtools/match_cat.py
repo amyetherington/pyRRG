@@ -1,8 +1,8 @@
 import os as os
-import pyfits as py
+from astropy.io import fits
 import numpy as np
 
-import color_color as color
+from . import color_color as color
 from numpy.lib.recfunctions import append_fields as append_rec
 
 def run_match( cat_A, cat_B, \
@@ -15,7 +15,7 @@ def run_match( cat_A, cat_B, \
 
     os.system(command_str)
 
-    matched_cat = py.open('matched_A_B.fits')
+    matched_cat = fits.open('matched_A_B.fits')
 
     return matched_cat
 

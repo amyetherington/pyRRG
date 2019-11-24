@@ -1,10 +1,10 @@
 import numpy as np
-import measure_moms as mm
-import acs_model_e as acs_model
-import drizzle_position as dp
+from . import measure_moms 
+from . import acs_model_e as acs_model
+from . import drizzle_position as dp
 import os as os
-import pyfits as py
-import directories
+from astropy.io import fits
+from . import directories
 def acs_determine_focus_metric( true, model ):
     '''
     SO A is the flag to check if the quadrupole moments
@@ -78,14 +78,14 @@ def acs_determine_focus( unknown_focus_image,
     inframe_stars = observed_moments_stars[observed_moments_stars[image_name+'_INFRAME'] == 1]
 
     if not os.path.isfile( unknown_focus_image[:-5]+'_uncor.cat'):
-        mm.measure_moms( unknown_focus_image,  'NOCAT_NEED',
+        measure_moms( unknown_focus_image,  'NOCAT_NEED',
                     unknown_focus_image[:-5]+'_uncor.cat',
                     object_catalogue=inframe_stars,
                     xGal=inframe_stars[image_name+'_X_IMAGE'],
                     yGal=inframe_stars[image_name+'_Y_IMAGE'],
                     mult=2, min_rad=6,  quiet=True)
         
-    star_moments = py.open( unknown_focus_image[:-5]+'_uncor.cat' )[1].data
+    star_moments = fits.open( unknown_focus_image[:-5]+'_uncor.cat' )[1].data
     
     #Now get an array of moments for all the possible focus positions
     model_e, focus = acs_model.acs_model_e(star_moments[image_name+'_X_IMAGE'],
@@ -103,10 +103,10 @@ def acs_determine_focus( unknown_focus_image,
     
     n_stars=len(close_match)
     if n_stars < 2:
-        print "No stars found in field "
+        print("No stars found in field ")
         global_focus=0.
         global_focus_error=100.
-        focus = raw_input("No stars are found so please either input focus or cancel : ")
+        focus = input("No stars are found so please either input focus or cancel : ")
     
     # Tabulate model ellipticities
     model_e1=model_e.e1[:,close_match]
@@ -121,9 +121,9 @@ def acs_determine_focus( unknown_focus_image,
 
     best_fit_focus_indiv = np.zeros( (2, n_stars ))
 
-    for i in xrange(len(close_match)):
+    for i in range(len(close_match)):
         chisq=np.zeros(n_focus) #Absolute chi squared
-        for f in xrange(n_focus):
+        for f in range(n_focus):
         #Tabulate model ellipticities
             model = moments( 1 )
             model['e1'][0] = model_e.e1[f,close_match][i]
@@ -200,7 +200,7 @@ class moments( dict ):
 
 
     def keys(self):
-        return self.__dict__.keys()
+        return list(self.__dict__.keys())
 
     def __getitem__(self, key): 
         return self.__dict__[key]

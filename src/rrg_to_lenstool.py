@@ -4,8 +4,7 @@ the shears in the format required to be used in lenstool
 (using option 7, and the format a, b, theta)
 
 '''
-
-import pyfits as py
+from astropy.io import fits
 import os as os
 #import mask_catalogue as mask_catalogue
 import numpy as np
@@ -35,8 +34,8 @@ def rrg_to_lenstool( rrg_catalogue,
     to be used in lenstool
     default_src_redshift : a scalar  of redshifts that the sources galaxies are at
     '''
-    image = py.open(image_file)
-    MaskedRRGCat = py.open( rrg_catalogue )[1].data
+    image = fits.open(image_file)
+    MaskedRRGCat = fits.open( rrg_catalogue )[1].data
 
 
     nGalaxies = len( MaskedRRGCat )

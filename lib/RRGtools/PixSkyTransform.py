@@ -1,5 +1,5 @@
 import numpy as np
-import pyfits as py
+from astropy.io import fits
 import os as os
 
 def deg2pix( fits, ra, dec, coordfile=None, postage_stamp=0,
@@ -66,9 +66,10 @@ def pix2deg( fits, x_image, y_image, coordfile=None, ):
     os.system("rm -fr xy2sky.results")
     if coordfile is None:
         coordfile = "xy2sky.par"
-        skypar = open(coordfile,"wb") 
-        for i in xrange(len(x_image)):
-            skypar.write(str(x_image[i])+"   "+str(y_image[i])+"\n")
+        skypar = open(coordfile,"w") 
+        for i in range(len(x_image)):
+            skypar.write('%0.5f %0.5f\n' % \
+                             (x_image[i],y_image[i]))
         skypar.close()
 
     iraf.wcsctran.unlearn()
@@ -102,7 +103,7 @@ def deg2pix_flt( fits, ra, dec, postage_stamp=0, cut=False):
             
     x = np.append( x_chip1[ inchip1 ], x_chip2[ inchip2 ])
     y = np.append( y_chip1[ inchip1 ], y_chip2[ inchip2 ]+2048)
-    print x, y
+    print(x, y)
     return x, y
 
  

@@ -5,7 +5,7 @@ from matplotlib import gridspec as gridspec
 import sys as sys
 import numpy as np
 import ipdb as pdb
-import pyfits as fits
+from astropy.io import fits
 import sklearn
 
 def star_galaxy_separation( sources, outfile, include_sat=False, redoML=False):
@@ -48,7 +48,7 @@ def star_galaxy_separation( sources, outfile, include_sat=False, redoML=False):
 
         
     overwrite = \
-      raw_input('Accept automated selection?\n'+\
+      input('Accept automated selection?\n'+\
             'Yes (y) : And remove all files and remeasure stars and galaxies\n'+\
             'Continue (c) : Use current selection, do not remeasure galaxies and stars\n'+\
                 'No (n)       : Reject star-gal separation and re-do interactively \n'+\
@@ -57,14 +57,14 @@ def star_galaxy_separation( sources, outfile, include_sat=False, redoML=False):
                   
     plt.close()
     if overwrite == 'y':
-        print 'Writing over gal file and removing j*uncor.cat'
+        print('Writing over gal file and removing j*uncor.cat')
         os.system('rm -fr j*uncor.cat *_cor.cat')
     elif overwrite == 'm':
-        print 'Reseparating Automatically'
+        print('Reseparating Automatically')
         star_galaxy_separation( sources, outfile, include_sat=False, redoML=True)
     elif overwrite == 'n':
         #If i reseparate i will want to remeasure all stars and galaxies
-        print 'Reseparating Interactively'
+        print('Reseparating Interactively')
         os.system('rm -fr stars.fits')
         os.system('rm -fr galaxies.fits')
         os.system('rm -fr j*uncor.cat *_cor.cat')
@@ -80,10 +80,10 @@ def star_galaxy_separation( sources, outfile, include_sat=False, redoML=False):
         new_cols = fits.ColDefs(cols)
         hduWithGalStarFlag = fits.BinTableHDU.from_columns(orig_cols + new_cols)
     
-        hduWithGalStarFlag.writeto(outfile, clobber=True)
+        hduWithGalStarFlag.writeto(outfile, overwrite=True)
     else:
         sources['galStarFlag'] = galStarObject.galStarFlag
-        fits.writeto(  outfile, sources, clobber=True )
+        fits.writeto(  outfile, sources, overwrite=True )
 
         
 #This class is where all the meat of the code is run including the interactive plotting
@@ -130,9 +130,9 @@ class galStar():
             
             '''
             codeDir = os.path.dirname(os.path.realpath(__file__))
-
+            print(codeDir+'/'+rfModel)
             galStarFlagClassifier =  \
-              pkl.load(open(codeDir+'/'+rfModel,'rb'))
+              pkl.load(open(codeDir+'/'+rfModel,'rb'), encoding='latin1')
 
 
             self.galStarFlag = np.zeros(len(sources))-2
@@ -174,9 +174,9 @@ class galStar():
             self.ax3.set_ylim([10,30])
 
 
-            self.ax1.plot( sources['MAG_AUTO'][self.nanCheck], sources['gal_size'][self.nanCheck], 'k,')
-            self.ax2.plot( sources['MAG_AUTO'][self.nanCheck], sources['RADIUS'][self.nanCheck],   'k,')
-            self.ax3.plot( sources['MAG_AUTO'][self.nanCheck], sources['MU_MAX'][self.nanCheck],   'k,')
+            self.ax1.plot( sources['MAG_AUTO'][self.nanCheck], sources['gal_size'][self.nanCheck], 'g,')
+            self.ax2.plot( sources['MAG_AUTO'][self.nanCheck], sources['RADIUS'][self.nanCheck],   'g,')
+            self.ax3.plot( sources['MAG_AUTO'][self.nanCheck], sources['MU_MAX'][self.nanCheck],   'g,')
             plt.show(block=False)
             
         def plot_boundaries( self, sources ):
@@ -221,7 +221,7 @@ class galStar():
                 sources : fits record of the sources from source exractor 
             '''
             #first get the default params
-            self.defaultsInteractiveParams(  sources)
+            self.defaultsInteractiveParams(  sources )
             #Write on the plot some useful directions for the user
             self.ax3.annotate( 'Use double left click to select point',\
                                        xy=( 0.01, 0.9), \
@@ -372,7 +372,7 @@ class galStar():
                     #Reset galaxies or stars
                     #Replot the galaxies or stars
                     if len(self.xcoords) == 2:
-                        self.galaxies = []
+                        self.galStarFlag[:]=-1
                         self.plot_stars_galaxies( sources)
                     elif len(self.xcoords) == 4:
                         self.GalLowCut = 0.
@@ -407,13 +407,13 @@ class galStar():
             Plot the stars in yellow stars
             Plot the galaxies in red points
             '''
-            
+
             if len(self.star_points) > 0:
                 iStar_points = self.star_points[ -1 ]
                 iGal_points = self.gal_points[ -1]
                 iNoise_points =self.noise_points[-1]
                 
-                for i in xrange(len(iStar_points)):
+                for i in range(len(iStar_points)):
                     #First remove any overlaid galaxy or star points alrady
                     #on the plot
                     iStar_points[i].pop(0).remove()
@@ -441,11 +441,11 @@ class galStar():
 
 
             self.noise_points.append( [ self.axes[0].plot( sources['MAG_AUTO'][self.galStarFlag==-1], \
-                                                        sources['MU_MAX'][self.galStarFlag==-1], 'g.'  ),
+                                                        sources['MU_MAX'][self.galStarFlag==-1], 'g,'  ),
                                           self.axes[1].plot( sources['MAG_AUTO'][self.galStarFlag==-1], \
-                                                            sources['gal_size'][self.galStarFlag==-1], 'g.', label='Noise' ),
+                                                            sources['gal_size'][self.galStarFlag==-1], 'g,', label='Noise' ),
                                           self.axes[2].plot( sources['MAG_AUTO'][self.galStarFlag==-1], \
-                                                            sources['RADIUS'][self.galStarFlag==-1], 'g.' )])
+                                                            sources['RADIUS'][self.galStarFlag==-1], 'g,' )])
 
             self.axes[1].legend()
 
